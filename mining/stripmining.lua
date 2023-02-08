@@ -9,10 +9,12 @@ local running = true
 local returning = false
 local distance = 0
 local y_level = 0
+local torch_distance = 12
 
-local FUEL_SLOT = 15
-local EXTERNAL_INVENTORY_SLOT = 14
-local TORCH_SLOT = 13
+local FUEL_SLOT = 16
+local EXTERNAL_INVENTORY_SLOT = 15
+local TORCH_SLOT = 14
+local FIRST_PICKUP_SLOT = 13
 
 
 -- ### MOVING AND MINING - DIRECTION AGNOSTIC ###
@@ -93,7 +95,7 @@ end
 local function deposit() end
 
 local function inventory_full()
-	if turtle.getItemCount(15) > 0 then
+	if turtle.getItemCount(FIRST_PICKUP_SLOT) > 0 then
 		deposit()
 	end
 end
@@ -160,6 +162,13 @@ local function advance()
 	check_for_ores()
 	intern_advance()
 	check_for_ores()
+
+	if distance % 12 == 0 then
+		turtle.select(TORCH_SLOT)
+		turn()
+		turtle.place()
+		turn()
+	end
 
 	distance = distance + 3
 end
@@ -229,6 +238,8 @@ if turtle.refuel(0) == false then
 end
 turtle.refuel(64)
 print("Turtle is refueled")
+
+turtle.select(1)
 
 while not returning do
 	stripmine()
