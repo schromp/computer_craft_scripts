@@ -1,13 +1,92 @@
 ---@diagnostic disable: unused-function, unused-local
 
+-- functions that work on level 1 and 2
+-- when mining watch for gravel
+-- one move and mine function to accomplish every direction
+
 -- ### FLAG VARIABLES ###
 local running = true
 local returning = false
 local distance = 0
+local y_level = 0
 
 local FUEL_SLOT = 15
 local EXTERNAL_INVENTORY_SLOT = 14
 local TORCH_SLOT = 13
+
+
+-- ### MOVING AND MINING - DIRECTION AGNOSTIC ###
+
+local dirs = {
+	front = 0,
+	back = 1,
+	right = 2,
+	left = 3,
+	up = 4,
+	down = 5,
+}
+
+local function turn() 
+	turtle.turnRight()
+	turtle.turnRight()
+end
+
+-- move function which takes a direction.
+-- if direction is not forwards, up or down then the turtle turns itself
+local function move(direction)
+	if direction == dirs.front then
+		turtle.forward()
+	elseif direction == dirs.back then
+		turn()
+		turtle.forward()
+	elseif direction == dirs.right then
+		turtle.turnRight()
+		turtle.forward()
+	elseif direction == dirs.left then
+		turtle.turnLeft()
+		turtle.forward()
+	elseif direction == dirs.up then
+		turtle.up()
+	elseif direction == dirs.down then
+		turtle.down()
+	end
+end
+
+-- dig function which takes a direction
+-- if direction is not forwards, up or down then the turtle turns itself
+-- is gravel and sand safe
+local function dig(direction)
+	if direction == dirs.front then
+		while turtle.dig() do end
+	elseif direction == dirs.back then
+		turn()
+		while turtle.dig() do end
+	elseif direction == dirs.right then
+		turtle.turnRight()
+		while turtle.dig() do end
+	elseif direction == dirs.left then
+		turtle.turnLeft()
+		while turtle.dig() do end
+	elseif direction == dirs.up then
+		while turtle.digUp() do end
+	elseif direction == dirs.down then
+		while turtle.digDown() do end
+	end
+end
+
+-- wrapper function for dig and move together
+local function dig_and_move(direction)
+	dig(direction)
+	if direction == dirs.up then
+		turtle.up()
+		move(dirs.up)
+	elseif direction == dirs.down then
+		move(dirs.down)
+	else 
+		move(dirs.front)
+	end
+end
+
 
 -- ### INVENTORY FUNCTIONS
 
@@ -40,72 +119,85 @@ local function can_deviate()
 end
 
 -- ### ORE FUNCTIONS ###
+local function mine_branch() end
+
 local function check_for_ores()
 	if can_deviate() then
-		local block = turtle.inspectUp()
+		local exists, block = turtle.inspectUp()
+		if block.tags and block.tags["c:ores"] then
+			mine_branch()
+		end
 	end
 end
 
-local function mine_branch() end
 
 -- ### MOVEMENT FUNCTIONS ###
 
+-- internal function used in advanced to decide which movement to use
+local function intern_advance()
+	if y_level == 0 then
+		dig_and_move(dirs.up)
+		y_level = 1
+	else 
+		dig_and_move(dirs.down)
+		y_level = 0
+	end
+end
+
 -- advance three steps forwards
 local function advance()
-	turtle.dig()
-	turtle.forward()
+	dig_and_move(dirs.front)
 	check_for_ores()
-	turtle.digUp()
-	turtle.up()
+	intern_advance()
 	check_for_ores()
 
-	turtle.dig()
-	turtle.forward()
+	dig_and_move(dirs.front)
 	check_for_ores()
-	turtle.digDown()
-	turtle.down()
+	intern_advance()
 	check_for_ores()
 
-	turtle.dig()
-	turtle.forward()
+	dig_and_move(dirs.front)
 	check_for_ores()
-	turtle.digUp()
-	turtle.up()
+	intern_advance()
 	check_for_ores()
-	turtle.down()
 
 	distance = distance + 3
 end
 
 local function strip_line(range)
 	for i = 1, range, 1 do
-		turtle.dig()
-		turtle.forward()
+		dig_and_move(dirs.front)
 		if check_for_ores() then
 			mine_branch()
 		end
 	end
 end
 
+local function intern_strip() 
+	if y_level == 0 then
+		dig_and_move(dirs.up)
+		y_level = 1
+	else
+		dig_and_move(dirs.down)
+		y_level = 0
+	end
+end
+
 local function strip()
 	turtle.turnLeft()
-	strip_line()
-	turtle.digUp()
-	turtle.up()
+	strip_line(4)
+	intern_strip()
 	if check_for_ores() then
 		mine_branch()
 	end
-	turtle.turnLeft()
-	turtle.turnLeft()
+	turn()
 
-	strip_line(9)
-	turtle.digDown()
-	turtle.down()
+	strip_line(8)
+	intern_strip()
 	if check_for_ores() then
 		mine_branch()
 	end
-	turtle.turnLeft()
-	turtle.turnLeft()
+	turn()
 	strip_line(4)
 	turtle.turnRight()
 end
@@ -120,10 +212,9 @@ local function stripmine()
 end
 
 local function return_to_start()
-	turtle.turnRight()
-	turtle.turnRight()
+	turn()
 	for i = 1, distance, 1 do
-		turtle.forward()
+		move(dirs.front)
 	end
 end
 
