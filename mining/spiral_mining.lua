@@ -5,6 +5,9 @@
 -- make a 3x3xceilingheight big hole
 -- place the turtle in the middle
 
+-- place torch all 14 blocks
+-- TODO: this is broken!
+
 local wurtle = require("wurtle")
 
 local dirs = wurtle.dirs
@@ -19,11 +22,28 @@ local c_turn = 0
 
 -- TODO: ste ceiling height to argument
 
-local function check_for_ores() end
+local function is_ore(dir) end
+
+local function check_for_ores() 
+	wurtle.turn(dirs.left)
+	is_ore(dirs.forward)
+	wurtle.turn(dirs.backward)
+	is_ore(dirs.forward)
+	wurtle.turn(dirs.left)
+	is_ore(dirs.up)
+	is_ore(dirs.down)
+end
 
 local function inventory_full() end
 
 local function need_refuel() end
+
+local function place_torch() 
+	turtle.select(15)
+	wurtle.turn(dirs.backward)
+	turtle.place()	
+	wurtle.turn(dirs.backward)
+end
 
 local function return_base() end
 
@@ -32,6 +52,9 @@ local function mine_move(dir)
 	wurtle.mine(dir)
 	wurtle.move(dir)
 	check_for_ores()
+	if wurtle.x % 14 == 1 or wurtle.y % 14 == 1 then
+		place_torch()
+	end	
 end
 
 -- digs #steps forward and checks for ores
@@ -41,14 +64,19 @@ local function dig(steps)
 			mine_move(dirs.forward)
 			check_for_ores()
 		else
-			for i = 1, CEILING_HEIGHT - 1, 1 do
-				mine_move(dirs.up)
-			end
 
-			mine_move(dirs.forward)
-
-			for i = 1, CEILING_HEIGHT - 1, 1 do
-				mine_move(dirs.down)
+			if wurtle.y > 0 then
+                mine_move(dirs.forward)
+                for i = 1, CEILING_HEIGHT - 1, 1 do
+                    mine_move(dirs.down)
+                end
+			elseif wurtle.y == 0 then
+				mine_move(dirs.forward)
+				for i = 1, CEILING_HEIGHT - 1, 1 do
+					mine_move(dirs.up)
+				end
+			else 
+				print("Cannot do dig function on minus y level")
 			end
 		end
 
@@ -66,6 +94,9 @@ end
 
 -- ### START OF PROGRAM ###
 
+turtle.select(16)
+turtle.refuel(64)
+
 -- Move to start position
 wurtle.move(dirs.forward)
 dig(4)
@@ -75,9 +106,13 @@ wurtle.turn(dirs.left)
 
 -- mining, cancels in return_base function
 while true do
-	for i = 1, 3, 1 do
+	for i = 1, 2, 1 do
 		dig(c_tunnel_length)
 		wurtle.turn(dirs.left)
 	end
 	c_tunnel_length = c_tunnel_length + 4
+	wurtle.turn(dirs.left)
+	turtle.select(15)
+	turtle.place()
+	wurtle.turn(dirs.right)
 end

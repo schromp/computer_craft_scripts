@@ -23,8 +23,8 @@ wurtle.dirs = {
 	backward = 2,
 	left = -1,
 	right = 1,
-	up = 0,
-	down = 0,
+	up = 3,
+	down = 4,
 }
 
 -- ### LOCAL COORDINATE FUNCTINOS ###
@@ -111,7 +111,7 @@ end
 
 -- Mining blocks; right, left and back turn the turtle; Gravelproof
 function wurtle.mine(dir, side)
-	side = side or "left"
+	side = side or "right"
 	if dir == wurtle.dirs.forward then
 		turtle.dig(side)
 	elseif dir == wurtle.dirs.backward then
